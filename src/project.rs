@@ -13,7 +13,7 @@ pub fn find_project_root(start: &Path) -> PathBuf {
         }
         match current.parent() {
             Some(parent) => current = parent.to_path_buf(),
-            None => return start.to_path_buf(),
+            None => return std::env::current_dir().unwrap_or_else(|_| start.to_path_buf()),
         }
     }
 }
@@ -47,9 +47,10 @@ mod tests {
     }
 
     #[test]
-    fn falls_back_to_start_when_no_marker() {
+    fn falls_back_to_a_directory_when_no_marker() {
         let tmp = TempDir::new().unwrap();
         let root = find_project_root(tmp.path());
-        assert_eq!(root, tmp.path());
+        // Falls back to cwd — must be a directory, not a file
+        assert!(root.is_dir());
     }
 }

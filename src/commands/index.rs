@@ -7,6 +7,10 @@ use std::path::Path;
 use walkdir::WalkDir;
 
 pub fn run_index(path: &Path) -> anyhow::Result<()> {
+    if !path.exists() {
+        anyhow::bail!("path does not exist: {}", path.display());
+    }
+
     let project_root = find_project_root(path);
 
     if path.is_file() {
@@ -21,7 +25,7 @@ pub fn run_index(path: &Path) -> anyhow::Result<()> {
         for entry in WalkDir::new(path)
             .into_iter()
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map_or(false, |ext| ext == "rs"))
+            .filter(|e| e.path().extension().is_some_and(|ext| ext == "rs"))
         {
             let rel = entry
                 .path()
@@ -42,42 +46,28 @@ fn index_single_file(source_file: &Path, project_root: &Path) -> anyhow::Result<
     let file_hash = cache::compute_hash(&source);
     let cache_file = cache::cache_path_for_file(project_root, source_file);
 
-    // Check if file hash matches — skip if unchanged
-    if let Some(existing) = cache::read_cache(&cache_file) {
-        if existing.file_hash == file_hash {
-            return Ok(());
-        }
-        // File changed: extract and merge
-        let new_items = extractor::extract_file(source_file, &source)
-            .map_err(|e| anyhow::anyhow!("parse error in {}: {}", source_file.display(), e))?;
-        let merged = cache::merge_items(new_items, Some(&existing));
-        let fc = FileCache {
-            file: source_file
-                .strip_prefix(project_root)
-                .unwrap_or(source_file)
-                .to_string_lossy()
-                .to_string(),
-            file_hash,
-            indexed_at: chrono::Utc::now().to_rfc3339(),
-            items: merged,
-        };
-        cache::write_cache(&cache_file, &fc)?;
-    } else {
-        // No cache yet: extract fresh
-        let new_items = extractor::extract_file(source_file, &source)
-            .map_err(|e| anyhow::anyhow!("parse error in {}: {}", source_file.display(), e))?;
-        let fc = FileCache {
-            file: source_file
-                .strip_prefix(project_root)
-                .unwrap_or(source_file)
-                .to_string_lossy()
-                .to_string(),
-            file_hash,
-            indexed_at: chrono::Utc::now().to_rfc3339(),
-            items: new_items,
-        };
-        cache::write_cache(&cache_file, &fc)?;
+    // Skip if file is unchanged
+    if let Some(ref existing) = cache::read_cache(&cache_file)
+        && existing.file_hash == file_hash
+    {
+        return Ok(());
     }
+
+    let existing = cache::read_cache(&cache_file);
+    let new_items = extractor::extract_file(source_file, &source)
+        .map_err(|e| anyhow::anyhow!("parse error in {}: {}", source_file.display(), e))?;
+    let merged = cache::merge_items(new_items, existing.as_ref());
+    let fc = FileCache {
+        file: source_file
+            .strip_prefix(project_root)
+            .unwrap_or(source_file)
+            .to_string_lossy()
+            .to_string(),
+        file_hash,
+        indexed_at: chrono::Utc::now().to_rfc3339(),
+        items: merged,
+    };
+    cache::write_cache(&cache_file, &fc)?;
 
     Ok(())
 }

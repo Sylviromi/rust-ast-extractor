@@ -1,6 +1,6 @@
 pub mod schema;
 
-use schema::{ExtractedItem, FileCache, ItemKind};
+use schema::{ExtractedItem, FileCache};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
@@ -43,16 +43,14 @@ pub fn merge_items(
     new_items
         .into_iter()
         .map(|item| {
-            if let Some(cached) = existing {
-                if let Some(existing_item) = cached
+            if let Some(cached) = existing
+                && let Some(existing_item) = cached
                     .items
                     .iter()
                     .find(|e| e.name == item.name && e.kind == item.kind)
-                {
-                    if existing_item.item_hash == item.item_hash {
-                        return existing_item.clone();
-                    }
-                }
+                && existing_item.item_hash == item.item_hash
+            {
+                return existing_item.clone();
             }
             item
         })
@@ -62,6 +60,7 @@ pub fn merge_items(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use schema::ItemKind;
     use tempfile::TempDir;
 
     fn make_item(name: &str, hash: &str) -> ExtractedItem {

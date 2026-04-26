@@ -26,14 +26,13 @@ fn extract_docs(attrs: &[syn::Attribute]) -> String {
             if !attr.path().is_ident("doc") {
                 return None;
             }
-            if let syn::Meta::NameValue(nv) = &attr.meta {
-                if let syn::Expr::Lit(syn::ExprLit {
+            if let syn::Meta::NameValue(nv) = &attr.meta
+                && let syn::Expr::Lit(syn::ExprLit {
                     lit: syn::Lit::Str(s),
                     ..
                 }) = &nv.value
-                {
-                    return Some(s.value().trim().to_string());
-                }
+            {
+                return Some(s.value().trim().to_string());
             }
             None
         })
@@ -57,7 +56,7 @@ fn extract_lines(source: &str, start_line: usize, end_line: usize) -> String {
     source
         .lines()
         .enumerate()
-        .filter(|(i, _)| *i + 1 >= start_line && *i + 1 <= end_line)
+        .filter(|(i, _)| *i >= start_line.saturating_sub(1) && *i < end_line)
         .map(|(_, line)| line)
         .collect::<Vec<_>>()
         .join("\n")
