@@ -62,14 +62,14 @@ fn index_single_file(source_file: &Path, project_root: &Path) -> anyhow::Result<
     let file_hash = cache::compute_hash(&source);
     let cache_file = cache::cache_path_for_file(project_root, source_file);
 
+    let existing = cache::read_cache(&cache_file);
+
     // Skip if file is unchanged
-    if let Some(ref existing) = cache::read_cache(&cache_file)
-        && existing.file_hash == file_hash
+    if let Some(ref e) = existing
+        && e.file_hash == file_hash
     {
         return Ok(false);
     }
-
-    let existing = cache::read_cache(&cache_file);
     let new_items = extractor::extract_file(source_file, &source)
         .map_err(|e| anyhow::anyhow!("parse error in {}: {}", source_file.display(), e))?;
     let merged = cache::merge_items(new_items, existing.as_ref());
