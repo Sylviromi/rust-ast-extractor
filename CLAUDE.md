@@ -67,8 +67,6 @@ src/
     "signature": "pub fn my_fn(x: u32) -> String",
     "docs": "Doc comment text.",
     "attributes": ["#[inline]"],
-    "line_start": 10,
-    "line_end": 15,
     "item_hash": "sha256:...",
     "raw_source": "pub fn my_fn(x: u32) -> String { ... }"
   }]
