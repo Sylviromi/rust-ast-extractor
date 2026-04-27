@@ -75,7 +75,9 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
         let end = span.end().line;
         let raw = extract_lines(self.source, start, end);
         let vis = visibility_str(&i.vis);
-        let sig = format!("{} {}", vis, i.sig.to_token_stream()).trim().to_string();
+        let sig = format!("{} {}", vis, i.sig.to_token_stream())
+            .trim()
+            .to_string();
 
         self.items.push(ExtractedItem {
             kind: ItemKind::Fn,
@@ -172,7 +174,9 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
                 let mspan = method.span();
                 let (ms, me) = (mspan.start().line, mspan.end().line);
                 let vis = visibility_str(&method.vis);
-                let msig = format!("{} {}", vis, method.sig.to_token_stream()).trim().to_string();
+                let msig = format!("{} {}", vis, method.sig.to_token_stream())
+                    .trim()
+                    .to_string();
                 self.items.push(ExtractedItem {
                     kind: ItemKind::Fn,
                     name: method.sig.ident.to_string(),
@@ -284,7 +288,11 @@ pub fn hello(x: u32) -> String {
         assert_eq!(item.kind, ItemKind::Fn);
         assert_eq!(item.name, "hello");
         assert_eq!(item.visibility, "pub");
-        assert!(item.signature.contains("pub fn hello"), "got: {}", item.signature);
+        assert!(
+            item.signature.contains("pub fn hello"),
+            "got: {}",
+            item.signature
+        );
         assert_eq!(item.docs, "Does a thing.");
         assert!(item.raw_source.contains("pub fn hello"));
         assert!(!item.item_hash.is_empty());
@@ -352,7 +360,11 @@ impl Dog {
     fn extracts_mod() {
         let src = "pub mod utils {}";
         let items = collect(src);
-        assert!(items.iter().any(|i| i.kind == ItemKind::Mod && i.name == "utils"));
+        assert!(
+            items
+                .iter()
+                .any(|i| i.kind == ItemKind::Mod && i.name == "utils")
+        );
     }
 
     #[test]

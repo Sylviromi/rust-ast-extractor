@@ -94,7 +94,10 @@ mod tests {
         let root = Path::new("/project");
         let source = Path::new("/project/src/lib.rs");
         let cache = cache_path_for_file(root, source);
-        assert_eq!(cache, Path::new("/project/.ast-cache/files/src/lib.rs.json"));
+        assert_eq!(
+            cache,
+            Path::new("/project/.ast-cache/files/src/lib.rs.json")
+        );
     }
 
     #[test]
@@ -153,7 +156,10 @@ mod tests {
             file: "src/lib.rs".into(),
             file_hash: "sha256:old".into(),
             indexed_at: "2026-04-26T00:00:00Z".into(),
-            items: vec![make_item("foo", "sha256:111"), make_item("bar", "sha256:222")],
+            items: vec![
+                make_item("foo", "sha256:111"),
+                make_item("bar", "sha256:222"),
+            ],
         };
         // "bar" is gone from source
         let new_items = vec![make_item("foo", "sha256:111")];

@@ -34,8 +34,16 @@ pub struct Config {
         fs::write(&path, src).unwrap();
 
         let items = extract_file(&path, src).unwrap();
-        assert!(items.iter().any(|i| i.kind == ItemKind::Fn && i.name == "greet"));
-        assert!(items.iter().any(|i| i.kind == ItemKind::Struct && i.name == "Config"));
+        assert!(
+            items
+                .iter()
+                .any(|i| i.kind == ItemKind::Fn && i.name == "greet")
+        );
+        assert!(
+            items
+                .iter()
+                .any(|i| i.kind == ItemKind::Struct && i.name == "Config")
+        );
     }
 
     #[test]

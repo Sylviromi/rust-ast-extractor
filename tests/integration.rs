@@ -57,18 +57,27 @@ pub struct Config {
         .expect("failed to run binary");
     assert!(get.status.success());
 
-    let json: serde_json::Value =
-        serde_json::from_slice(&get.stdout).expect("invalid JSON output");
+    let json: serde_json::Value = serde_json::from_slice(&get.stdout).expect("invalid JSON output");
     let items = json["items"].as_array().unwrap();
-    assert!(items.iter().any(|i| i["name"] == "greet" && i["kind"] == "fn"));
-    assert!(items.iter().any(|i| i["name"] == "Config" && i["kind"] == "struct"));
+    assert!(
+        items
+            .iter()
+            .any(|i| i["name"] == "greet" && i["kind"] == "fn")
+    );
+    assert!(
+        items
+            .iter()
+            .any(|i| i["name"] == "Config" && i["kind"] == "struct")
+    );
 
     let greet_item = items.iter().find(|i| i["name"] == "greet").unwrap();
     assert_eq!(greet_item["docs"], "Greets someone.");
-    assert!(greet_item["signature"]
-        .as_str()
-        .unwrap()
-        .contains("pub fn greet"));
+    assert!(
+        greet_item["signature"]
+            .as_str()
+            .unwrap()
+            .contains("pub fn greet")
+    );
 
     drop(tmp);
 }
@@ -92,7 +101,10 @@ fn get_specific_item_returns_raw_source() {
 
     let output = String::from_utf8_lossy(&get.stdout);
     assert!(output.contains("target_fn"), "got: {output}");
-    assert!(!output.contains("other"), "should not contain other fn: {output}");
+    assert!(
+        !output.contains("other"),
+        "should not contain other fn: {output}"
+    );
 }
 
 #[test]
@@ -113,11 +125,13 @@ fn get_auto_indexes_unindexed_file() {
     );
 
     let json: serde_json::Value = serde_json::from_slice(&get.stdout).unwrap();
-    assert!(json["items"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|i| i["name"] == "ANSWER"));
+    assert!(
+        json["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|i| i["name"] == "ANSWER")
+    );
 }
 
 #[test]
