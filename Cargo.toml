@@ -8,12 +8,7 @@ repository = "https://github.com/TcePrepK/rust-ast-extractor"
 keywords = ["ast", "rust", "parser", "cli", "codegen"]
 categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"
-exclude = [
-    "CLAUDE.md",
-    ".claude/",
-    ".ast-cache/",
-    "docs/",
-]
+exclude = ["CLAUDE.md"]
 
 [dependencies]
 syn = { version = "2", features = ["full", "extra-traits", "visit"] }
