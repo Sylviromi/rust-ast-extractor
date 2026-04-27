@@ -71,8 +71,6 @@ mod tests {
             signature: format!("pub fn {name}()"),
             docs: String::new(),
             attributes: vec![],
-            line_start: 1,
-            line_end: 1,
             item_hash: hash.into(),
             raw_source: format!("pub fn {name}() {{}}"),
         }

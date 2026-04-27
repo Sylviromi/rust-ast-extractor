@@ -39,8 +39,6 @@ pub struct ExtractedItem {
     pub signature: String,
     pub docs: String,
     pub attributes: Vec<String>,
-    pub line_start: u32,
-    pub line_end: u32,
     pub item_hash: String,
     pub raw_source: String,
 }
@@ -69,8 +67,6 @@ mod tests {
                 signature: "pub fn my_fn()".into(),
                 docs: "Does a thing.".into(),
                 attributes: vec!["#[inline]".into()],
-                line_start: 1,
-                line_end: 3,
                 item_hash: "sha256:def".into(),
                 raw_source: "pub fn my_fn() {}".into(),
             }],

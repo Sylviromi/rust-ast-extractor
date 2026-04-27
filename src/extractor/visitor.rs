@@ -84,8 +84,6 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
             signature: sig,
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
-            line_start: start as u32,
-            line_end: end as u32,
             item_hash: item_hash(i.to_token_stream()),
             raw_source: raw,
         });
@@ -103,8 +101,6 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
             signature: format!("{} struct {}", vis, i.ident).trim().to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
-            line_start: start as u32,
-            line_end: end as u32,
             item_hash: item_hash(i.to_token_stream()),
             raw_source: extract_lines(self.source, start, end),
         });
@@ -121,8 +117,6 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
             signature: format!("{} enum {}", vis, i.ident).trim().to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
-            line_start: start as u32,
-            line_end: end as u32,
             item_hash: item_hash(i.to_token_stream()),
             raw_source: extract_lines(self.source, start, end),
         });
@@ -139,8 +133,6 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
             signature: format!("{} trait {}", vis, i.ident).trim().to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
-            line_start: start as u32,
-            line_end: end as u32,
             item_hash: item_hash(i.to_token_stream()),
             raw_source: extract_lines(self.source, start, end),
         });
@@ -170,8 +162,6 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
             signature: sig,
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
-            line_start: start as u32,
-            line_end: end as u32,
             item_hash: item_hash(i.to_token_stream()),
             raw_source: extract_lines(self.source, start, end),
         });
@@ -190,8 +180,6 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
                     signature: msig,
                     docs: extract_docs(&method.attrs),
                     attributes: extract_non_doc_attrs(&method.attrs),
-                    line_start: ms as u32,
-                    line_end: me as u32,
                     item_hash: item_hash(method.to_token_stream()),
                     raw_source: extract_lines(self.source, ms, me),
                 });
@@ -210,8 +198,6 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
             signature: format!("{} type {}", vis, i.ident).trim().to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
-            line_start: start as u32,
-            line_end: end as u32,
             item_hash: item_hash(i.to_token_stream()),
             raw_source: extract_lines(self.source, start, end),
         });
@@ -230,8 +216,6 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
                 .to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
-            line_start: start as u32,
-            line_end: end as u32,
             item_hash: item_hash(i.to_token_stream()),
             raw_source: extract_lines(self.source, start, end),
         });
@@ -252,8 +236,6 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
             signature: i.mac.path.to_token_stream().to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
-            line_start: start as u32,
-            line_end: end as u32,
             item_hash: item_hash(i.to_token_stream()),
             raw_source: extract_lines(self.source, start, end),
         });
@@ -270,8 +252,6 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
             signature: format!("{} mod {}", vis, i.ident).trim().to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
-            line_start: start as u32,
-            line_end: end as u32,
             item_hash: item_hash(i.to_token_stream()),
             raw_source: extract_lines(self.source, start, end),
         });
