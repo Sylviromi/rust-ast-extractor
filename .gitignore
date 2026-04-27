@@ -1,3 +1,6 @@
 .idea
 /target
 .ast-cache
+.claude/
+docs/
+TODO.md

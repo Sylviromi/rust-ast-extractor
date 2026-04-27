@@ -2,6 +2,18 @@
 name = "rust-ast-extractor"
 version = "0.1.0"
 edition = "2024"
+description = "CLI tool that parses Rust source files and extracts structured AST data (functions, structs, enums, traits, etc.) into a JSON cache for fast AI-assistant consumption."
+license = "MIT"
+repository = "https://github.com/TcePrepK/rust-ast-extractor"
+keywords = ["ast", "rust", "parser", "cli", "codegen"]
+categories = ["command-line-utilities", "development-tools"]
+readme = "README.md"
+exclude = [
+    "CLAUDE.md",
+    ".claude/",
+    ".ast-cache/",
+    "docs/",
+]
 
 [dependencies]
 syn = { version = "2", features = ["full", "extra-traits", "visit"] }
