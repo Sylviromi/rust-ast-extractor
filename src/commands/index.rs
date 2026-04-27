@@ -19,29 +19,45 @@ pub fn run_index(path: &Path) -> anyhow::Result<()> {
             .unwrap_or(path)
             .display()
             .to_string();
-        eprintln!("indexing {rel}");
-        index_single_file(path, &project_root)?;
+        let updated = index_single_file(path, &project_root)?;
+        if updated {
+            eprintln!("updated {rel}");
+        } else {
+            eprintln!("{rel} up to date");
+        }
     } else {
+        let mut updated_count: usize = 0;
+        let mut unchanged_count: usize = 0;
         for entry in WalkDir::new(path)
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.path().extension().is_some_and(|ext| ext == "rs"))
         {
-            let rel = entry
-                .path()
-                .strip_prefix(&project_root)
-                .unwrap_or(entry.path())
-                .display()
-                .to_string();
-            eprintln!("indexing {rel}");
-            index_single_file(entry.path(), &project_root)?;
+            let updated = index_single_file(entry.path(), &project_root)?;
+            if updated {
+                let rel = entry
+                    .path()
+                    .strip_prefix(&project_root)
+                    .unwrap_or(entry.path())
+                    .display()
+                    .to_string();
+                eprintln!("  updated {rel}");
+                updated_count += 1;
+            } else {
+                unchanged_count += 1;
+            }
+        }
+        if updated_count == 0 {
+            eprintln!("All {} files up to date.", unchanged_count);
+        } else {
+            eprintln!("{updated_count} files updated, {unchanged_count} unchanged.");
         }
     }
 
     Ok(())
 }
 
-fn index_single_file(source_file: &Path, project_root: &Path) -> anyhow::Result<()> {
+fn index_single_file(source_file: &Path, project_root: &Path) -> anyhow::Result<bool> {
     let source = std::fs::read_to_string(source_file)?;
     let file_hash = cache::compute_hash(&source);
     let cache_file = cache::cache_path_for_file(project_root, source_file);
@@ -50,7 +66,7 @@ fn index_single_file(source_file: &Path, project_root: &Path) -> anyhow::Result<
     if let Some(ref existing) = cache::read_cache(&cache_file)
         && existing.file_hash == file_hash
     {
-        return Ok(());
+        return Ok(false);
     }
 
     let existing = cache::read_cache(&cache_file);
@@ -68,8 +84,7 @@ fn index_single_file(source_file: &Path, project_root: &Path) -> anyhow::Result<
         items: merged,
     };
     cache::write_cache(&cache_file, &fc)?;
-
-    Ok(())
+    Ok(true)
 }
 
 #[cfg(test)]
@@ -131,5 +146,24 @@ mod tests {
 
         assert!(tmp.path().join(".ast-cache/files/src/main.rs.json").exists());
         assert!(tmp.path().join(".ast-cache/files/src/lib.rs.json").exists());
+    }
+
+    #[test]
+    fn index_single_file_returns_true_on_new_file() {
+        let (_tmp, file) = setup_project("pub fn foo() {}");
+        let project_root = crate::project::find_project_root(&file);
+        let result = index_single_file(&file, &project_root).unwrap();
+        assert!(result, "new file should return true");
+    }
+
+    #[test]
+    fn index_single_file_returns_false_on_unchanged_file() {
+        let (_tmp, file) = setup_project("pub fn foo() {}");
+        let project_root = crate::project::find_project_root(&file);
+        // first index
+        index_single_file(&file, &project_root).unwrap();
+        // second index — same hash
+        let result = index_single_file(&file, &project_root).unwrap();
+        assert!(!result, "unchanged file should return false");
     }
 }
