@@ -1,5 +1,41 @@
 use crate::{cache, commands::index::run_index, project::find_project_root};
+use serde::Serialize;
 use std::path::PathBuf;
+
+#[derive(Serialize)]
+struct ItemSummary<'a> {
+    kind: &'a crate::cache::schema::ItemKind,
+    name: &'a str,
+    visibility: &'a str,
+    signature: &'a str,
+    docs: &'a str,
+    attributes: &'a [String],
+}
+
+#[derive(Serialize)]
+struct FileSummary<'a> {
+    file: &'a str,
+    items: Vec<ItemSummary<'a>>,
+}
+
+fn build_file_summary_json(fc: &crate::cache::schema::FileCache) -> String {
+    let summary = FileSummary {
+        file: &fc.file,
+        items: fc
+            .items
+            .iter()
+            .map(|item| ItemSummary {
+                kind: &item.kind,
+                name: &item.name,
+                visibility: &item.visibility,
+                signature: &item.signature,
+                docs: &item.docs,
+                attributes: &item.attributes,
+            })
+            .collect(),
+    };
+    serde_json::to_string_pretty(&summary).expect("serialization failed")
+}
 
 /// `target` is either `"path/to/file.rs"` or `"path/to/file.rs::item_name"`
 /// or `"path/to/file.rs::kind::item_name"` for disambiguation.
@@ -18,8 +54,7 @@ pub fn run_get(target: &str) -> anyhow::Result<()> {
         .ok_or_else(|| anyhow::anyhow!("could not read cache for {file_str}"))?;
 
     if name_filter.is_none() {
-        // Return full file JSON
-        println!("{}", serde_json::to_string_pretty(&fc)?);
+        println!("{}", build_file_summary_json(&fc));
         return Ok(());
     }
 
@@ -135,5 +170,54 @@ mod tests {
         let project_root = find_project_root(&file);
         let cache_path = crate::cache::cache_path_for_file(&project_root, &file);
         assert!(cache_path.exists(), "auto-index should have created cache");
+    }
+
+    #[test]
+    fn get_file_summary_excludes_internal_fields() {
+        let src = "pub fn hello() {}";
+        let (_tmp, file) = setup_indexed_project(src);
+
+        let project_root = find_project_root(&file);
+        let cache_path = crate::cache::cache_path_for_file(&project_root, &file);
+        let raw_json = fs::read_to_string(&cache_path).unwrap();
+
+        // The on-disk cache should still have item_hash and raw_source
+        let cache_value: serde_json::Value = serde_json::from_str(&raw_json).unwrap();
+        assert!(
+            cache_value["items"][0].get("item_hash").is_some(),
+            "cache should retain item_hash"
+        );
+        assert!(
+            cache_value["items"][0].get("raw_source").is_some(),
+            "cache should retain raw_source"
+        );
+
+        // The get output (stdout) should NOT include them.
+        // We test this by constructing the summary the same way run_get would.
+        let fc: crate::cache::schema::FileCache = serde_json::from_str(&raw_json).unwrap();
+        let summary_json = build_file_summary_json(&fc);
+        let summary: serde_json::Value = serde_json::from_str(&summary_json).unwrap();
+        assert!(
+            summary.get("file_hash").is_none(),
+            "file_hash must be absent"
+        );
+        assert!(
+            summary.get("indexed_at").is_none(),
+            "indexed_at must be absent"
+        );
+        assert!(
+            summary["items"][0].get("item_hash").is_none(),
+            "item_hash must be absent"
+        );
+        assert!(
+            summary["items"][0].get("raw_source").is_none(),
+            "raw_source must be absent"
+        );
+        assert!(
+            summary["items"][0].get("line_start").is_none(),
+            "line_start must be absent"
+        );
+        assert!(summary["items"][0]["kind"].as_str().unwrap() == "fn");
+        assert!(summary["items"][0]["name"].as_str().unwrap() == "hello");
     }
 }
