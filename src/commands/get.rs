@@ -18,7 +18,7 @@ struct FileSummary<'a> {
     items: Vec<ItemSummary<'a>>,
 }
 
-fn build_file_summary_json(fc: &crate::cache::schema::FileCache) -> String {
+fn build_file_summary_json(fc: &crate::cache::schema::FileCache) -> anyhow::Result<String> {
     let summary = FileSummary {
         file: &fc.file,
         items: fc
@@ -34,7 +34,7 @@ fn build_file_summary_json(fc: &crate::cache::schema::FileCache) -> String {
             })
             .collect(),
     };
-    serde_json::to_string_pretty(&summary).expect("serialization failed")
+    Ok(serde_json::to_string_pretty(&summary)?)
 }
 
 /// `target` is either `"path/to/file.rs"` or `"path/to/file.rs::item_name"`
@@ -54,7 +54,7 @@ pub fn run_get(target: &str) -> anyhow::Result<()> {
         .ok_or_else(|| anyhow::anyhow!("could not read cache for {file_str}"))?;
 
     if name_filter.is_none() {
-        println!("{}", build_file_summary_json(&fc));
+        println!("{}", build_file_summary_json(&fc)?);
         return Ok(());
     }
 
@@ -195,7 +195,7 @@ mod tests {
         // The get output (stdout) should NOT include them.
         // We test this by constructing the summary the same way run_get would.
         let fc: crate::cache::schema::FileCache = serde_json::from_str(&raw_json).unwrap();
-        let summary_json = build_file_summary_json(&fc);
+        let summary_json = build_file_summary_json(&fc).unwrap();
         let summary: serde_json::Value = serde_json::from_str(&summary_json).unwrap();
         assert!(
             summary.get("file_hash").is_none(),

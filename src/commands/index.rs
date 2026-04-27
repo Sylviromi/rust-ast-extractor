@@ -41,7 +41,7 @@ pub fn run_index(path: &Path) -> anyhow::Result<()> {
                     .unwrap_or(entry.path())
                     .display()
                     .to_string();
-                eprintln!("  updated {rel}");
+                eprintln!("updated {rel}");
                 updated_count += 1;
             } else {
                 unchanged_count += 1;
@@ -144,7 +144,11 @@ mod tests {
 
         run_index(tmp.path()).unwrap();
 
-        assert!(tmp.path().join(".ast-cache/files/src/main.rs.json").exists());
+        assert!(
+            tmp.path()
+                .join(".ast-cache/files/src/main.rs.json")
+                .exists()
+        );
         assert!(tmp.path().join(".ast-cache/files/src/lib.rs.json").exists());
     }
 
