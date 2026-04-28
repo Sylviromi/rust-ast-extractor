@@ -3,11 +3,44 @@ pub mod visitor;
 use crate::cache::schema::ExtractedItem;
 use std::path::Path;
 
-pub fn extract_file(_path: &Path, source: &str) -> Result<Vec<ExtractedItem>, syn::Error> {
+pub struct ExtractedFile {
+    pub items: Vec<ExtractedItem>,
+    pub module_doc: String,
+}
+
+pub fn extract_file(_path: &Path, source: &str) -> Result<ExtractedFile, syn::Error> {
     let file = syn::parse_str::<syn::File>(source)?;
+    let module_doc = extract_inner_docs(&file.attrs);
     let mut visitor = visitor::ItemVisitor::new(source);
     syn::visit::Visit::visit_file(&mut visitor, &file);
-    Ok(visitor.items)
+    Ok(ExtractedFile {
+        items: visitor.items,
+        module_doc,
+    })
+}
+
+fn extract_inner_docs(attrs: &[syn::Attribute]) -> String {
+    attrs
+        .iter()
+        .filter_map(|attr| {
+            if !matches!(attr.style, syn::AttrStyle::Inner(_)) {
+                return None;
+            }
+            if !attr.path().is_ident("doc") {
+                return None;
+            }
+            if let syn::Meta::NameValue(nv) = &attr.meta
+                && let syn::Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Str(s),
+                    ..
+                }) = &nv.value
+            {
+                return Some(s.value().trim().to_string());
+            }
+            None
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 #[cfg(test)]
@@ -33,17 +66,39 @@ pub struct Config {
         let path = tmp.path().join("lib.rs");
         fs::write(&path, src).unwrap();
 
-        let items = extract_file(&path, src).unwrap();
+        let extracted = extract_file(&path, src).unwrap();
         assert!(
-            items
+            extracted
+                .items
                 .iter()
                 .any(|i| i.kind == ItemKind::Fn && i.name == "greet")
         );
         assert!(
-            items
+            extracted
+                .items
                 .iter()
                 .any(|i| i.kind == ItemKind::Struct && i.name == "Config")
         );
+    }
+
+    #[test]
+    fn extracts_module_doc() {
+        let src = "//! Top-level module.\n//! Second line.\n\npub fn foo() {}";
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("lib.rs");
+        fs::write(&path, src).unwrap();
+        let extracted = extract_file(&path, src).unwrap();
+        assert_eq!(extracted.module_doc, "Top-level module.\nSecond line.");
+    }
+
+    #[test]
+    fn module_doc_empty_when_absent() {
+        let src = "pub fn foo() {}";
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("lib.rs");
+        fs::write(&path, src).unwrap();
+        let extracted = extract_file(&path, src).unwrap();
+        assert_eq!(extracted.module_doc, "");
     }
 
     #[test]

@@ -48,6 +48,8 @@ pub struct FileCache {
     pub file: String,
     pub file_hash: String,
     pub indexed_at: String,
+    #[serde(default)]
+    pub module_doc: String,
     pub items: Vec<ExtractedItem>,
 }
 
@@ -60,6 +62,7 @@ mod tests {
             file: "src/lib.rs".into(),
             file_hash: "sha256:abc".into(),
             indexed_at: "2026-04-26T00:00:00Z".into(),
+            module_doc: String::new(),
             items: vec![ExtractedItem {
                 kind: ItemKind::Fn,
                 name: "my_fn".into(),

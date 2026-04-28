@@ -33,6 +33,11 @@ enum Commands {
         /// File path, optionally with ::item or ::kind::item suffix
         target: String,
     },
+    /// List all .rs files in a directory with their module-level doc comments.
+    Dir {
+        /// Path to a directory
+        path: PathBuf,
+    },
 }
 
 fn main() {
@@ -41,6 +46,7 @@ fn main() {
     let result = match cli.command {
         Commands::Index { path } => commands::index::run_index(&path),
         Commands::Get { target } => commands::get::run_get(&target),
+        Commands::Dir { path } => commands::dir::run_dir(&path),
     };
 
     if let Err(e) = result {

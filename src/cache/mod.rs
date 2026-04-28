@@ -108,6 +108,7 @@ mod tests {
             file: "src/lib.rs".into(),
             file_hash: "sha256:abc".into(),
             indexed_at: "2026-04-26T00:00:00Z".into(),
+            module_doc: String::new(),
             items: vec![make_item("foo", "sha256:111")],
         };
         write_cache(&cache_file, &fc).unwrap();
@@ -128,6 +129,7 @@ mod tests {
             file: "src/lib.rs".into(),
             file_hash: "sha256:old".into(),
             indexed_at: "2026-04-26T00:00:00Z".into(),
+            module_doc: String::new(),
             items: vec![make_item("foo", "sha256:111")],
         };
         let new_items = vec![make_item("foo", "sha256:111")];
@@ -141,6 +143,7 @@ mod tests {
             file: "src/lib.rs".into(),
             file_hash: "sha256:old".into(),
             indexed_at: "2026-04-26T00:00:00Z".into(),
+            module_doc: String::new(),
             items: vec![make_item("foo", "sha256:old_hash")],
         };
         let mut new_item = make_item("foo", "sha256:new_hash");
@@ -156,6 +159,7 @@ mod tests {
             file: "src/lib.rs".into(),
             file_hash: "sha256:old".into(),
             indexed_at: "2026-04-26T00:00:00Z".into(),
+            module_doc: String::new(),
             items: vec![
                 make_item("foo", "sha256:111"),
                 make_item("bar", "sha256:222"),

@@ -70,9 +70,9 @@ fn index_single_file(source_file: &Path, project_root: &Path) -> anyhow::Result<
     {
         return Ok(false);
     }
-    let new_items = extractor::extract_file(source_file, &source)
+    let extracted = extractor::extract_file(source_file, &source)
         .map_err(|e| anyhow::anyhow!("parse error in {}: {}", source_file.display(), e))?;
-    let merged = cache::merge_items(new_items, existing.as_ref());
+    let merged = cache::merge_items(extracted.items, existing.as_ref());
     let fc = FileCache {
         file: source_file
             .strip_prefix(project_root)
@@ -81,6 +81,7 @@ fn index_single_file(source_file: &Path, project_root: &Path) -> anyhow::Result<
             .to_string(),
         file_hash,
         indexed_at: chrono::Utc::now().to_rfc3339(),
+        module_doc: extracted.module_doc,
         items: merged,
     };
     cache::write_cache(&cache_file, &fc)?;
