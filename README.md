@@ -22,29 +22,48 @@ rust-ast-extractor get src/main.rs::my_fn
 
 # Disambiguate by kind (fn/struct/impl/enum/trait/type/const/macro/mod)
 rust-ast-extractor get src/main.rs::fn::my_fn
+
+# Get a method scoped to a specific impl block
+rust-ast-extractor get src/main.rs::MyStruct::my_method
+
+# List all .rs files in a directory with their module-level doc comments
+rust-ast-extractor dir src/
 ```
 
 ## JSON Output Schema
 
+`get <file>` returns a file summary:
+
 ```json
 {
   "file": "src/lib.rs",
-  "file_hash": "sha256:...",
-  "indexed_at": "2026-04-26T...",
+  "module_doc": "Top-level module doc.",
   "items": [{
     "kind": "fn",
     "name": "my_fn",
+    "parent": "MyStruct",
     "visibility": "pub",
     "signature": "pub fn my_fn(x: u32) -> String",
     "docs": "Doc comment text.",
     "attributes": ["#[inline]"],
-    "item_hash": "sha256:...",
-    "raw_source": "pub fn my_fn(x: u32) -> String { ... }"
+    "line_start": 42,
+    "line_end": 45
   }]
 }
 ```
 
+`parent` is only present for methods extracted from an `impl` block.
+
 `kind` is one of: `fn`, `struct`, `enum`, `trait`, `impl`, `type`, `const`, `macro`, `mod`
+
+`dir <path>` returns a sorted list of files with their module docs:
+
+```json
+[
+  { "file": "src/lib.rs", "module_doc": "Top-level module." },
+  { "file": "src/utils.rs", "module_doc": "" }
+]
+```
 
 ## Cache
 
