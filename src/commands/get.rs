@@ -6,31 +6,40 @@ use std::path::PathBuf;
 struct ItemSummary<'a> {
     kind: &'a crate::cache::schema::ItemKind,
     name: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parent: Option<&'a str>,
     visibility: &'a str,
     signature: &'a str,
     docs: &'a str,
     attributes: &'a [String],
+    line_start: u32,
+    line_end: u32,
 }
 
 #[derive(Serialize)]
 struct FileSummary<'a> {
     file: &'a str,
+    module_doc: &'a str,
     items: Vec<ItemSummary<'a>>,
 }
 
 fn build_file_summary_json(fc: &crate::cache::schema::FileCache) -> anyhow::Result<String> {
     let summary = FileSummary {
         file: &fc.file,
+        module_doc: &fc.module_doc,
         items: fc
             .items
             .iter()
             .map(|item| ItemSummary {
                 kind: &item.kind,
                 name: &item.name,
+                parent: item.parent.as_deref(),
                 visibility: &item.visibility,
                 signature: &item.signature,
                 docs: &item.docs,
                 attributes: &item.attributes,
+                line_start: item.line_start,
+                line_end: item.line_end,
             })
             .collect(),
     };
@@ -59,6 +68,17 @@ pub fn run_get(target: &str) -> anyhow::Result<()> {
     }
 
     let name = name_filter.unwrap();
+
+    // If the middle segment is not a valid item kind, treat it as a parent type name.
+    const VALID_KINDS: &[&str] = &[
+        "fn", "struct", "enum", "trait", "impl", "type", "const", "macro", "mod",
+    ];
+    let (kind_filter, parent_filter) = match kind_filter {
+        Some(mid) if VALID_KINDS.contains(&mid) => (Some(mid), None),
+        Some(mid) => (None, Some(mid)),
+        None => (None, None),
+    };
+
     let matches: Vec<_> = fc
         .items
         .iter()
@@ -66,6 +86,9 @@ pub fn run_get(target: &str) -> anyhow::Result<()> {
             item.name == name
                 && kind_filter
                     .map(|k| item.kind.to_string() == k)
+                    .unwrap_or(true)
+                && parent_filter
+                    .map(|p| item.parent.as_deref() == Some(p))
                     .unwrap_or(true)
         })
         .collect();
@@ -214,8 +237,8 @@ mod tests {
             "raw_source must be absent"
         );
         assert!(
-            summary["items"][0].get("line_start").is_none(),
-            "line_start must be absent"
+            summary["items"][0].get("line_start").is_some(),
+            "line_start must be present"
         );
         assert!(summary["items"][0]["kind"].as_str().unwrap() == "fn");
         assert!(summary["items"][0]["name"].as_str().unwrap() == "hello");

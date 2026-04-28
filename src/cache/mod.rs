@@ -47,7 +47,7 @@ pub fn merge_items(
                 && let Some(existing_item) = cached
                     .items
                     .iter()
-                    .find(|e| e.name == item.name && e.kind == item.kind)
+                    .find(|e| e.name == item.name && e.kind == item.kind && e.parent == item.parent)
                 && existing_item.item_hash == item.item_hash
             {
                 return existing_item.clone();
@@ -67,10 +67,13 @@ mod tests {
         ExtractedItem {
             kind: ItemKind::Fn,
             name: name.into(),
+            parent: None,
             visibility: "pub".into(),
             signature: format!("pub fn {name}()"),
             docs: String::new(),
             attributes: vec![],
+            line_start: 1,
+            line_end: 1,
             item_hash: hash.into(),
             raw_source: format!("pub fn {name}() {{}}"),
         }

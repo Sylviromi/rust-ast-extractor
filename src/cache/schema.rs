@@ -35,10 +35,16 @@ impl std::fmt::Display for ItemKind {
 pub struct ExtractedItem {
     pub kind: ItemKind,
     pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<String>,
     pub visibility: String,
     pub signature: String,
     pub docs: String,
     pub attributes: Vec<String>,
+    #[serde(default)]
+    pub line_start: u32,
+    #[serde(default)]
+    pub line_end: u32,
     pub item_hash: String,
     pub raw_source: String,
 }
@@ -66,10 +72,13 @@ mod tests {
             items: vec![ExtractedItem {
                 kind: ItemKind::Fn,
                 name: "my_fn".into(),
+                parent: None,
                 visibility: "pub".into(),
                 signature: "pub fn my_fn()".into(),
                 docs: "Does a thing.".into(),
                 attributes: vec!["#[inline]".into()],
+                line_start: 1,
+                line_end: 1,
                 item_hash: "sha256:def".into(),
                 raw_source: "pub fn my_fn() {}".into(),
             }],

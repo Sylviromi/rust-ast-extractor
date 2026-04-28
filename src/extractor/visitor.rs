@@ -66,14 +66,38 @@ fn item_hash(tokens: proc_macro2::TokenStream) -> String {
     crate::cache::compute_hash(&tokens.to_string())
 }
 
+/// Returns the first source line that should appear in raw_source:
+/// the minimum start line of non-doc attributes, or the item keyword line if none.
+fn raw_source_start(attrs: &[syn::Attribute], keyword_line: usize) -> usize {
+    attrs
+        .iter()
+        .filter(|a| !a.path().is_ident("doc"))
+        .map(|a| a.span().start().line)
+        .min()
+        .unwrap_or(keyword_line)
+        .min(keyword_line)
+}
+
+/// Extracts the simple type name from a syn::Type (e.g. `Dog` from `Dog<T>`).
+fn type_ident(ty: &syn::Type) -> String {
+    if let syn::Type::Path(tp) = ty {
+        if let Some(seg) = tp.path.segments.last() {
+            return seg.ident.to_string();
+        }
+    }
+    ty.to_token_stream().to_string()
+}
+
 // — visitor impl —
 
 impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
     fn visit_item_fn(&mut self, i: &'ast syn::ItemFn) {
         let span = i.span();
-        let start = span.start().line;
-        let end = span.end().line;
-        let raw = extract_lines(self.source, start, end);
+        let line_start = span.start().line as u32;
+        let line_end = span.end().line as u32;
+        let keyword_line = i.sig.fn_token.span().start().line;
+        let raw_start = raw_source_start(&i.attrs, keyword_line);
+        let raw = extract_lines(self.source, raw_start, line_end as usize);
         let vis = visibility_str(&i.vis);
         let sig = format!("{} {}", vis, i.sig.to_token_stream())
             .trim()
@@ -82,10 +106,13 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
         self.items.push(ExtractedItem {
             kind: ItemKind::Fn,
             name: i.sig.ident.to_string(),
+            parent: None,
             visibility: vis,
             signature: sig,
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
+            line_start,
+            line_end,
             item_hash: item_hash(i.to_token_stream()),
             raw_source: raw,
         });
@@ -94,56 +121,69 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
 
     fn visit_item_struct(&mut self, i: &'ast syn::ItemStruct) {
         let span = i.span();
-        let (start, end) = (span.start().line, span.end().line);
+        let (line_start, line_end) = (span.start().line as u32, span.end().line as u32);
+        let raw_start = raw_source_start(&i.attrs, i.struct_token.span().start().line);
         let vis = visibility_str(&i.vis);
         self.items.push(ExtractedItem {
             kind: ItemKind::Struct,
             name: i.ident.to_string(),
+            parent: None,
             visibility: vis.clone(),
             signature: format!("{} struct {}", vis, i.ident).trim().to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
+            line_start,
+            line_end,
             item_hash: item_hash(i.to_token_stream()),
-            raw_source: extract_lines(self.source, start, end),
+            raw_source: extract_lines(self.source, raw_start, line_end as usize),
         });
     }
 
     fn visit_item_enum(&mut self, i: &'ast syn::ItemEnum) {
         let span = i.span();
-        let (start, end) = (span.start().line, span.end().line);
+        let (line_start, line_end) = (span.start().line as u32, span.end().line as u32);
+        let raw_start = raw_source_start(&i.attrs, i.enum_token.span().start().line);
         let vis = visibility_str(&i.vis);
         self.items.push(ExtractedItem {
             kind: ItemKind::Enum,
             name: i.ident.to_string(),
+            parent: None,
             visibility: vis.clone(),
             signature: format!("{} enum {}", vis, i.ident).trim().to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
+            line_start,
+            line_end,
             item_hash: item_hash(i.to_token_stream()),
-            raw_source: extract_lines(self.source, start, end),
+            raw_source: extract_lines(self.source, raw_start, line_end as usize),
         });
     }
 
     fn visit_item_trait(&mut self, i: &'ast syn::ItemTrait) {
         let span = i.span();
-        let (start, end) = (span.start().line, span.end().line);
+        let (line_start, line_end) = (span.start().line as u32, span.end().line as u32);
+        let raw_start = raw_source_start(&i.attrs, i.trait_token.span().start().line);
         let vis = visibility_str(&i.vis);
         self.items.push(ExtractedItem {
             kind: ItemKind::Trait,
             name: i.ident.to_string(),
+            parent: None,
             visibility: vis.clone(),
             signature: format!("{} trait {}", vis, i.ident).trim().to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
+            line_start,
+            line_end,
             item_hash: item_hash(i.to_token_stream()),
-            raw_source: extract_lines(self.source, start, end),
+            raw_source: extract_lines(self.source, raw_start, line_end as usize),
         });
         // do NOT recurse — trait methods not extracted separately
     }
 
     fn visit_item_impl(&mut self, i: &'ast syn::ItemImpl) {
         let span = i.span();
-        let (start, end) = (span.start().line, span.end().line);
+        let (line_start, line_end) = (span.start().line as u32, span.end().line as u32);
+        let raw_start = raw_source_start(&i.attrs, i.impl_token.span().start().line);
 
         let name = if let Some((_, trait_path, _)) = &i.trait_ {
             format!(
@@ -156,23 +196,29 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
         };
 
         let sig = format!("impl {name}");
+        let parent_name = type_ident(&i.self_ty);
 
         self.items.push(ExtractedItem {
             kind: ItemKind::Impl,
             name: name.clone(),
+            parent: None,
             visibility: String::new(),
             signature: sig,
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
+            line_start,
+            line_end,
             item_hash: item_hash(i.to_token_stream()),
-            raw_source: extract_lines(self.source, start, end),
+            raw_source: extract_lines(self.source, raw_start, line_end as usize),
         });
 
         // recurse into impl to collect methods as Fn items
         for item in &i.items {
             if let syn::ImplItem::Fn(method) = item {
                 let mspan = method.span();
-                let (ms, me) = (mspan.start().line, mspan.end().line);
+                let (mls, mle) = (mspan.start().line as u32, mspan.end().line as u32);
+                let keyword_line = method.sig.fn_token.span().start().line;
+                let raw_start = raw_source_start(&method.attrs, keyword_line);
                 let vis = visibility_str(&method.vis);
                 let msig = format!("{} {}", vis, method.sig.to_token_stream())
                     .trim()
@@ -180,12 +226,15 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
                 self.items.push(ExtractedItem {
                     kind: ItemKind::Fn,
                     name: method.sig.ident.to_string(),
+                    parent: Some(parent_name.clone()),
                     visibility: vis,
                     signature: msig,
                     docs: extract_docs(&method.attrs),
                     attributes: extract_non_doc_attrs(&method.attrs),
+                    line_start: mls,
+                    line_end: mle,
                     item_hash: item_hash(method.to_token_stream()),
-                    raw_source: extract_lines(self.source, ms, me),
+                    raw_source: extract_lines(self.source, raw_start, mle as usize),
                 });
             }
         }
@@ -193,41 +242,50 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
 
     fn visit_item_type(&mut self, i: &'ast syn::ItemType) {
         let span = i.span();
-        let (start, end) = (span.start().line, span.end().line);
+        let (line_start, line_end) = (span.start().line as u32, span.end().line as u32);
+        let raw_start = raw_source_start(&i.attrs, i.type_token.span().start().line);
         let vis = visibility_str(&i.vis);
         self.items.push(ExtractedItem {
             kind: ItemKind::Type,
             name: i.ident.to_string(),
+            parent: None,
             visibility: vis.clone(),
             signature: format!("{} type {}", vis, i.ident).trim().to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
+            line_start,
+            line_end,
             item_hash: item_hash(i.to_token_stream()),
-            raw_source: extract_lines(self.source, start, end),
+            raw_source: extract_lines(self.source, raw_start, line_end as usize),
         });
     }
 
     fn visit_item_const(&mut self, i: &'ast syn::ItemConst) {
         let span = i.span();
-        let (start, end) = (span.start().line, span.end().line);
+        let (line_start, line_end) = (span.start().line as u32, span.end().line as u32);
+        let raw_start = raw_source_start(&i.attrs, i.const_token.span().start().line);
         let vis = visibility_str(&i.vis);
         self.items.push(ExtractedItem {
             kind: ItemKind::Const,
             name: i.ident.to_string(),
+            parent: None,
             visibility: vis.clone(),
             signature: format!("{} const {}: {}", vis, i.ident, i.ty.to_token_stream())
                 .trim()
                 .to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
+            line_start,
+            line_end,
             item_hash: item_hash(i.to_token_stream()),
-            raw_source: extract_lines(self.source, start, end),
+            raw_source: extract_lines(self.source, raw_start, line_end as usize),
         });
     }
 
     fn visit_item_macro(&mut self, i: &'ast syn::ItemMacro) {
         let span = i.span();
-        let (start, end) = (span.start().line, span.end().line);
+        let (line_start, line_end) = (span.start().line as u32, span.end().line as u32);
+        let raw_start = raw_source_start(&i.attrs, i.mac.path.span().start().line);
         let name = i
             .ident
             .as_ref()
@@ -236,28 +294,35 @@ impl<'src, 'ast> Visit<'ast> for ItemVisitor<'src> {
         self.items.push(ExtractedItem {
             kind: ItemKind::Macro,
             name,
+            parent: None,
             visibility: String::new(),
             signature: i.mac.path.to_token_stream().to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
+            line_start,
+            line_end,
             item_hash: item_hash(i.to_token_stream()),
-            raw_source: extract_lines(self.source, start, end),
+            raw_source: extract_lines(self.source, raw_start, line_end as usize),
         });
     }
 
     fn visit_item_mod(&mut self, i: &'ast syn::ItemMod) {
         let span = i.span();
-        let (start, end) = (span.start().line, span.end().line);
+        let (line_start, line_end) = (span.start().line as u32, span.end().line as u32);
+        let raw_start = raw_source_start(&i.attrs, i.mod_token.span().start().line);
         let vis = visibility_str(&i.vis);
         self.items.push(ExtractedItem {
             kind: ItemKind::Mod,
             name: i.ident.to_string(),
+            parent: None,
             visibility: vis.clone(),
             signature: format!("{} mod {}", vis, i.ident).trim().to_string(),
             docs: extract_docs(&i.attrs),
             attributes: extract_non_doc_attrs(&i.attrs),
+            line_start,
+            line_end,
             item_hash: item_hash(i.to_token_stream()),
-            raw_source: extract_lines(self.source, start, end),
+            raw_source: extract_lines(self.source, raw_start, line_end as usize),
         });
         // recurse into inline mod bodies
         syn::visit::visit_item_mod(self, i);
