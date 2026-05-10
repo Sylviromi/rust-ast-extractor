@@ -9,7 +9,7 @@ fn binary() -> std::path::PathBuf {
         .unwrap()
         .parent()
         .unwrap()
-        .join("rust-ast-extractor")
+        .join("synopsis")
 }
 
 fn setup_project(src: &str) -> (TempDir, std::path::PathBuf) {

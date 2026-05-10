@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`rust-ast-extractor` is a CLI tool that parses Rust source files and extracts structured data (functions, structs, enums, traits, impl blocks, type aliases, constants, macros, modules) into a JSON cache at `<project-root>/.ast-cache/`. Designed to be consumed by AI assistants for fast file/item lookup.
+`synopsis` is a CLI tool that parses Rust source files and extracts structured data (functions, structs, enums, traits, impl blocks, type aliases, constants, macros, modules) into a JSON cache at `<project-root>/.ast-cache/`. Designed to be consumed by AI assistants for fast file/item lookup.
 
 ## Build & Run Commands
 
@@ -24,10 +24,10 @@ cargo fmt             # format code
 ## CLI Usage
 
 ```
-rust-ast-extractor index <path>              # index .rs file or directory recursively
-rust-ast-extractor get <file>               # get JSON summary (auto-indexes if needed)
-rust-ast-extractor get <file>::<item>       # get raw source of item
-rust-ast-extractor get <file>::<kind>::<item>  # disambiguate by kind (fn/struct/impl/etc.)
+synopsis index <path>              # index .rs file or directory recursively
+synopsis get <file>               # get JSON summary (auto-indexes if needed)
+synopsis get <file>::<item>       # get raw source of item
+synopsis get <file>::<kind>::<item>  # disambiguate by kind (fn/struct/impl/etc.)
 ```
 
 ## JSON Output Schema
@@ -52,23 +52,23 @@ rust-ast-extractor get <file>::<kind>::<item>  # disambiguate by kind (fn/struct
 
 `kind` is one of: `fn`, `struct`, `enum`, `trait`, `impl`, `type`, `const`, `macro`, `mod`
 
-## AST Cache (rust-ast-extractor)
+## AST Cache (synopsis)
 
-The project is indexed with [`rust-ast-extractor`](https://github.com/TcePrepK/rust-ast-extractor). The cache lives in
+The project is indexed with [`synopsis`](https://github.com/Sylviromi/rust-ast-extractor). The cache lives in
 `.ast-cache/` (gitignored).
 **Before reading a source file**, check the cache first — it's faster and gives you signatures, docs, and line numbers
 without opening the file:
 
 ```bash
 # Get structured summary of a file (items, signatures, docs)
-rust-ast-extractor get src/app.rs
+synopsis get src/app.rs
 
 # Get raw source of one specific item
-rust-ast-extractor get src/app.rs::App
-rust-ast-extractor get src/handlers/feed_list.rs::handle_feed_list_input
+synopsis get src/app.rs::App
+synopsis get src/handlers/feed_list.rs::handle_feed_list_input
 
 # Re-index after editing source files
-rust-ast-extractor index src/
+synopsis index src/
 ```
 
 **When to use it:**
@@ -77,12 +77,12 @@ rust-ast-extractor index src/
 - When planning which files to touch — `get src/file.rs` shows all items with signatures and doc comments
 - After making changes — re-index so the cache stays current
 
-**Re-index rule:** Run `rust-ast-extractor index src/` at the start of any session where you plan to edit source files,
+**Re-index rule:** Run `synopsis index src/` at the start of any session where you plan to edit source files,
 or after any significant changes. The tool skips unchanged files, so it's fast.
 
 ---
 
 ## Module Map
 
-Run `rust-ast-extractor dir src/` for a live index of all source files and their responsibilities.
+Run `synopsis dir src/` for a live index of all source files and their responsibilities.
 Each file's `//!` module doc is the authoritative description — it is never out of date.

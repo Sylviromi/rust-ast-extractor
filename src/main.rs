@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(
-    name = "rust-ast-extractor",
+    name = "synopsis",
     about = "Extract structured data from Rust source files into a JSON cache"
 )]
 struct Cli {

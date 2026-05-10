@@ -1,33 +1,33 @@
-# rust-ast-extractor
+# synopsis
 
 A CLI tool that parses Rust source files and extracts structured AST data — functions, structs, enums, traits, impl blocks, type aliases, constants, macros, and modules — into a JSON cache at `<project-root>/.ast-cache/`. Designed for fast file/item lookup by AI assistants and developer tooling.
 
 ## Installation
 
 ```bash
-cargo install rust-ast-extractor
+cargo install synopsis
 ```
 
 ## Usage
 
 ```bash
 # Index a file or directory recursively
-rust-ast-extractor index src/
+synopsis index src/
 
 # Get a JSON summary of a file (auto-indexes if needed)
-rust-ast-extractor get src/main.rs
+synopsis get src/main.rs
 
 # Get the raw source of a specific item
-rust-ast-extractor get src/main.rs::my_fn
+synopsis get src/main.rs::my_fn
 
 # Disambiguate by kind (fn/struct/impl/enum/trait/type/const/macro/mod)
-rust-ast-extractor get src/main.rs::fn::my_fn
+synopsis get src/main.rs::fn::my_fn
 
 # Get a method scoped to a specific impl block
-rust-ast-extractor get src/main.rs::MyStruct::my_method
+synopsis get src/main.rs::MyStruct::my_method
 
 # List all .rs files in a directory with their module-level doc comments
-rust-ast-extractor dir src/
+synopsis dir src/
 ```
 
 ## JSON Output Schema

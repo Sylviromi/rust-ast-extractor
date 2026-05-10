@@ -1,5 +1,5 @@
 [package]
-name = "rust-ast-extractor"
+name = "synopsis"
 version = "0.3.0"
 edition = "2024"
 description = "CLI tool that parses Rust source files and extracts structured AST data (functions, structs, enums, traits, etc.) into a JSON cache for fast AI-assistant consumption."
