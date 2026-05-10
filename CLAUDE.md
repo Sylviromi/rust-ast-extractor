@@ -54,7 +54,7 @@ synopsis get <file>::<kind>::<item>  # disambiguate by kind (fn/struct/impl/etc.
 
 ## AST Cache (synopsis)
 
-The project is indexed with [`synopsis`](https://github.com/Sylviromi/rust-ast-extractor). The cache lives in
+The project is indexed with [`synopsis`](https://github.com/Sylviromi/synopsis). The cache lives in
 `.ast-cache/` (gitignored).
 **Before reading a source file**, check the cache first — it's faster and gives you signatures, docs, and line numbers
 without opening the file:
