@@ -6,16 +6,19 @@ use std::path::Path;
 pub struct ExtractedFile {
     pub items: Vec<ExtractedItem>,
     pub module_doc: String,
+    pub line_count: u32,
 }
 
 pub fn extract_file(_path: &Path, source: &str) -> Result<ExtractedFile, syn::Error> {
     let file = syn::parse_str::<syn::File>(source)?;
     let module_doc = extract_inner_docs(&file.attrs);
+    let line_count = source.lines().count() as u32;
     let mut visitor = visitor::ItemVisitor::new(source);
     syn::visit::Visit::visit_file(&mut visitor, &file);
     Ok(ExtractedFile {
         items: visitor.items,
         module_doc,
+        line_count,
     })
 }
 

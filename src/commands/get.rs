@@ -46,9 +46,25 @@ fn build_file_summary_json(fc: &crate::cache::schema::FileCache) -> anyhow::Resu
     Ok(serde_json::to_string_pretty(&summary)?)
 }
 
+fn build_compact_summary(fc: &crate::cache::schema::FileCache) -> String {
+    let mut out = String::new();
+    for item in &fc.items {
+        if item.parent.is_some() {
+            out.push_str("  ");
+        }
+        let docs_trimmed = if item.docs.len() > 80 {
+            &item.docs[..80]
+        } else {
+            &item.docs
+        };
+        out.push_str(&format!("{} {} - {}\n", item.kind, item.name, docs_trimmed));
+    }
+    out
+}
+
 /// `target` is either `"path/to/file.rs"` or `"path/to/file.rs::item_name"`
 /// or `"path/to/file.rs::kind::item_name"` for disambiguation.
-pub fn run_get(target: &str) -> anyhow::Result<()> {
+pub fn run_get(target: &str, compact: bool) -> anyhow::Result<()> {
     let (file_str, kind_filter, name_filter) = parse_target(target);
     let file_path = PathBuf::from(file_str);
     let project_root = find_project_root(&file_path);
@@ -63,7 +79,11 @@ pub fn run_get(target: &str) -> anyhow::Result<()> {
         .ok_or_else(|| anyhow::anyhow!("could not read cache for {file_str}"))?;
 
     if name_filter.is_none() {
-        println!("{}", build_file_summary_json(&fc)?);
+        if compact {
+            print!("{}", build_compact_summary(&fc));
+        } else {
+            println!("{}", build_file_summary_json(&fc)?);
+        }
         return Ok(());
     }
 
@@ -188,7 +208,7 @@ mod tests {
 
         // No run_index call — get should handle it
         let target = file.to_string_lossy().to_string();
-        run_get(&target).unwrap(); // should not panic
+        run_get(&target, false).unwrap(); // should not panic
 
         let project_root = find_project_root(&file);
         let cache_path = crate::cache::cache_path_for_file(&project_root, &file);

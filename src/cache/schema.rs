@@ -57,6 +57,12 @@ pub struct FileCache {
     #[serde(default)]
     pub module_doc: String,
     pub items: Vec<ExtractedItem>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub line_count: u32,
+}
+
+fn is_zero(n: &u32) -> bool {
+    *n == 0
 }
 
 #[cfg(test)]
@@ -82,6 +88,7 @@ mod tests {
                 item_hash: "sha256:def".into(),
                 raw_source: "pub fn my_fn() {}".into(),
             }],
+            line_count: 0,
         }
     }
 

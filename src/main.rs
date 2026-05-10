@@ -32,6 +32,9 @@ enum Commands {
     Get {
         /// File path, optionally with ::item or ::kind::item suffix
         target: String,
+        /// Print concise text summary instead of JSON (only for file-level gets)
+        #[arg(short, long)]
+        compact: bool,
     },
     /// List all .rs files in a directory with their module-level doc comments.
     Dir {
@@ -45,7 +48,7 @@ fn main() {
 
     let result = match cli.command {
         Commands::Index { path } => commands::index::run_index(&path),
-        Commands::Get { target } => commands::get::run_get(&target),
+        Commands::Get { target, compact } => commands::get::run_get(&target, compact),
         Commands::Dir { path } => commands::dir::run_dir(&path),
     };
 

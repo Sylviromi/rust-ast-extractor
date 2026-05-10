@@ -7,6 +7,7 @@ use walkdir::WalkDir;
 struct DirEntry {
     file: String,
     module_doc: String,
+    line_count: u32,
 }
 
 pub fn run_dir(path: &Path) -> anyhow::Result<()> {
@@ -33,8 +34,9 @@ pub fn run_dir(path: &Path) -> anyhow::Result<()> {
                 anyhow::anyhow!("could not read cache for {}", file_path.display())
             })?;
             Ok(DirEntry {
-                file: fc.file,
-                module_doc: fc.module_doc,
+                file: fc.file.clone(),
+                module_doc: fc.module_doc.clone(),
+                line_count: fc.line_count,
             })
         })
         .collect::<anyhow::Result<Vec<_>>>()?;
@@ -56,11 +58,7 @@ mod tests {
         fs::write(tmp.path().join("Cargo.toml"), "[package]").unwrap();
         let src = tmp.path().join("src");
         fs::create_dir(&src).unwrap();
-        fs::write(
-            src.join("lib.rs"),
-            "//! Library module.\n\npub fn foo() {}",
-        )
-        .unwrap();
+        fs::write(src.join("lib.rs"), "//! Library module.\n\npub fn foo() {}").unwrap();
         fs::write(src.join("main.rs"), "pub fn main() {}").unwrap();
         tmp
     }
@@ -86,8 +84,9 @@ mod tests {
                     anyhow::anyhow!("could not read cache for {}", file_path.display())
                 })?;
                 Ok(DirEntry {
-                    file: fc.file,
-                    module_doc: fc.module_doc,
+                    file: fc.file.clone(),
+                    module_doc: fc.module_doc.clone(),
+                    line_count: fc.line_count,
                 })
             })
             .collect::<anyhow::Result<Vec<_>>>()
@@ -98,8 +97,10 @@ mod tests {
         assert_eq!(entries.len(), 2);
         assert_eq!(entries[0].file, "src/lib.rs");
         assert_eq!(entries[0].module_doc, "Library module.");
+        assert_eq!(entries[0].line_count, 3);
         assert_eq!(entries[1].file, "src/main.rs");
         assert_eq!(entries[1].module_doc, "");
+        assert_eq!(entries[1].line_count, 1);
     }
 
     #[test]

@@ -52,8 +52,45 @@ pub fn run_index(path: &Path) -> anyhow::Result<()> {
         } else {
             eprintln!("{updated_count} files updated, {unchanged_count} unchanged.");
         }
+
+        // Remove stale cache entries for deleted source files
+        remove_stale_entries(path, &project_root)?;
     }
 
+    Ok(())
+}
+
+fn remove_stale_entries(indexed_path: &Path, project_root: &Path) -> anyhow::Result<()> {
+    let rel = indexed_path
+        .strip_prefix(project_root)
+        .unwrap_or(indexed_path);
+    let cache_dir = project_root.join(".ast-cache").join("files");
+    let target = if rel.as_os_str().is_empty() {
+        cache_dir.clone()
+    } else {
+        cache_dir.join(rel)
+    };
+    if !target.exists() {
+        return Ok(());
+    }
+    let mut removed = 0usize;
+    for entry in WalkDir::new(&target).into_iter().filter_map(|e| e.ok()) {
+        if entry.path().extension().is_some_and(|ext| ext == "json") {
+            let cache_rel = entry
+                .path()
+                .strip_prefix(&cache_dir)
+                .unwrap_or(entry.path());
+            let source = project_root.join(cache_rel.with_extension(""));
+            if !source.exists() {
+                std::fs::remove_file(entry.path())?;
+                removed += 1;
+            }
+        }
+    }
+    if removed > 0 {
+        let noun = if removed == 1 { "entry" } else { "entries" };
+        eprintln!("removed {removed} stale cache {noun}");
+    }
     Ok(())
 }
 
@@ -83,6 +120,7 @@ fn index_single_file(source_file: &Path, project_root: &Path) -> anyhow::Result<
         indexed_at: chrono::Utc::now().to_rfc3339(),
         module_doc: extracted.module_doc,
         items: merged,
+        line_count: extracted.line_count,
     };
     cache::write_cache(&cache_file, &fc)?;
     Ok(true)
@@ -170,5 +208,33 @@ mod tests {
         // second index — same hash
         let result = index_single_file(&file, &project_root).unwrap();
         assert!(!result, "unchanged file should return false");
+    }
+
+    #[test]
+    fn index_removes_stale_cache_entries() {
+        let tmp = TempDir::new().unwrap();
+        fs::write(tmp.path().join("Cargo.toml"), "[package]").unwrap();
+        let src = tmp.path().join("src");
+        fs::create_dir(&src).unwrap();
+        fs::write(src.join("main.rs"), "pub fn main() {}").unwrap();
+
+        // index once
+        run_index(tmp.path()).unwrap();
+        assert!(
+            tmp.path()
+                .join(".ast-cache/files/src/main.rs.json")
+                .exists()
+        );
+
+        // delete the source file, re-index should clean up
+        fs::remove_file(src.join("main.rs")).unwrap();
+        run_index(tmp.path()).unwrap();
+
+        assert!(
+            !tmp.path()
+                .join(".ast-cache/files/src/main.rs.json")
+                .exists(),
+            "stale cache entry should be removed"
+        );
     }
 }

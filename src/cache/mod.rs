@@ -113,6 +113,7 @@ mod tests {
             indexed_at: "2026-04-26T00:00:00Z".into(),
             module_doc: String::new(),
             items: vec![make_item("foo", "sha256:111")],
+            line_count: 0,
         };
         write_cache(&cache_file, &fc).unwrap();
         let loaded = read_cache(&cache_file).unwrap();
@@ -134,6 +135,7 @@ mod tests {
             indexed_at: "2026-04-26T00:00:00Z".into(),
             module_doc: String::new(),
             items: vec![make_item("foo", "sha256:111")],
+            line_count: 0,
         };
         let new_items = vec![make_item("foo", "sha256:111")];
         let merged = merge_items(new_items, Some(&existing));
@@ -148,6 +150,7 @@ mod tests {
             indexed_at: "2026-04-26T00:00:00Z".into(),
             module_doc: String::new(),
             items: vec![make_item("foo", "sha256:old_hash")],
+            line_count: 0,
         };
         let mut new_item = make_item("foo", "sha256:new_hash");
         new_item.signature = "pub fn foo(x: u32)".into();
@@ -167,6 +170,7 @@ mod tests {
                 make_item("foo", "sha256:111"),
                 make_item("bar", "sha256:222"),
             ],
+            line_count: 0,
         };
         // "bar" is gone from source
         let new_items = vec![make_item("foo", "sha256:111")];
